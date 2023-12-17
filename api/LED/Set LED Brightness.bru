@@ -1,0 +1,19 @@
+meta {
+  name: Set LED Brightness
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseURL}}/led/brightness?brightness={{brightness}}
+  body: none
+  auth: none
+}
+
+query {
+  brightness: {{brightness}}
+}
+
+vars:pre-request {
+  brightness: 255
+}

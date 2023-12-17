@@ -28,14 +28,43 @@ uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 // ESP-NOW LED control packet structure
 typedef struct __attribute__((packed)) {
-  uint8_t r;
-  uint8_t g;
-  uint8_t b;
+  uint32_t color;
   uint8_t brightness;
 } led_packet_t;
 
-void sendLedPacket(uint8_t r, uint8_t g, uint8_t b, uint8_t brightness);
+// Enum of colors and their hex values
+enum colors
+{
+  RED = 0xFF0000,
+  ORANGE = 0xFFA500,
+  YELLOW = 0xFFFF00,
+  GREEN = 0x00FF00,
+  CYAN = 0x00FFFF,
+  BLUE = 0x0000FF,
+  PURPLE = 0x8000FF,
+  MAGENTA = 0xFF00FF,
+  WHITE = 0xFFFFFF,
+  BLACK = 0x000000
+};
+
+//void sendLedPacket(uint8_t r, uint8_t g, uint8_t b, uint8_t brightness);
 void updateDashboard(uint8_t _r, uint8_t _g, uint8_t _b, uint8_t _brightness);
+
+/**
+ * @brief Sets the color and brightness of the LED.
+ * 
+ * @param color The color value to set (in RGB format).
+ * @param brightness The brightness level of the LED (0-255).
+ */
+void setLedColor(uint32_t color)
+{
+  //
+  ESP_LOGI(__func__, "Setting LED color: color=%i, br=%i", color, brightness);
+  led.setPixelColor(0, color);
+  led.show();
+  //sendLedPacket((color >> 0) & 0xFF, (color >> 8) & 0xFF, (color >> 16) & 0xFF, brightness);
+  updateDashboard((color >> 16) & 0xFF, (color >> 8) & 0xFF, (color >> 0) & 0xFF, led.getBrightness());
+}
 
 /**
  * @brief Sets the color and brightness of an LED.
@@ -46,14 +75,23 @@ void updateDashboard(uint8_t _r, uint8_t _g, uint8_t _b, uint8_t _brightness);
  * @param r The value for the red component of the LED color (0-255).
  * @param g The value for the green component of the LED color (0-255).
  * @param b The value for the blue component of the LED color (0-255).
- * @param brightness The brightness level of the LED (0-255).
  */
-void setLedColor(uint8_t r, uint8_t g, uint8_t b, uint8_t brightness)
+void setLedColor(uint8_t r, uint8_t g, uint8_t b)
 {
-  led.setPixelColor(0, r, g, b);
+  setLedColor(r << 16 | g << 8 | b);
+}
+
+/**
+ * @brief Sets the brightness of the LED.
+ * 
+ * @param brightness The brightness value to set (0-255).
+ */
+void setLedBrightness(uint8_t brightness)
+{
+  led.setBrightness(brightness);
   led.show();
-  sendLedPacket(r, g, b, brightness);
-  updateDashboard(r, g, b, brightness);
+  //sendLedPacket((led.getPixelColor(0) >> 0) & 0xFF, (led.getPixelColor(0) >> 8) & 0xFF, (led.getPixelColor(0) >> 16) & 0xFF, brightness);
+  updateDashboard((led.getPixelColor(0) >> 16) & 0xFF, (led.getPixelColor(0) >> 8) & 0xFF, (led.getPixelColor(0) >> 0) & 0xFF, brightness);
 }
 
 /**
@@ -67,8 +105,9 @@ void setLedColor(uint8_t r, uint8_t g, uint8_t b, uint8_t brightness)
  */
 void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len)
 {
+  ESP_LOGI(__func__, "Data received from %02x:%02x:%02x:%02x:%02x:%02x\nr=%i, g=%i, b=%i, br=%i", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5], (data[0] >> 0) & 0xFF, (data[0] >> 8) & 0xFF, (data[0] >> 16) & 0xFF, data[1]);
   led_packet_t *packet = (led_packet_t *)data;
-  led.setPixelColor(0, packet->r, packet->g, packet->b);
+  led.setPixelColor(0, packet->color);
   led.setBrightness(packet->brightness);
   led.show();
 }
@@ -81,7 +120,7 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len)
  */
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
 {
-  Serial.printf("Data sent to %02x:%02x:%02x:%02x:%02x:%02x\nStatus: %s\nr=%i, g=%i, b=%i, br=%i", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5], esp_err_to_name(status), led.getPixelColor(0) >> 0, led.getPixelColor(0) >> 8, led.getPixelColor(0) >> 16, led.getBrightness());
+  ESP_LOGI(__func__, "Data sent to %02x:%02x:%02x:%02x:%02x:%02x\nStatus: %s", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5], esp_err_to_name(status));
 }
 
 /**
@@ -89,16 +128,13 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
  * 
  * This function sends the current LED state to all devices using ESP-NOW.
  */
-void sendLedPacket(uint8_t r, uint8_t g, uint8_t b, uint8_t brightness)
+void sendLedPacket(uint32_t color, uint8_t brightness)
 {
   led_packet_t packet;
-  packet.r = r;
-  packet.g = g;
-  packet.b = b;
+  packet.color = color;
   packet.brightness = brightness;
   esp_err_t err = esp_now_send(broadcastAddress, (uint8_t *)&packet, sizeof(packet));
-  Serial.printf("Sending LED packet: %s\n", esp_err_to_name(err));
-
+  ESP_LOGI(__func__, "Sending LED packet: %s", esp_err_to_name(err));
 }
 
 /**
@@ -109,6 +145,7 @@ void sendLedPacket(uint8_t r, uint8_t g, uint8_t b, uint8_t brightness)
  */
 void setupDashboard()
 {
+  ESP_LOGI(__func__, "Setting up dashboard...");
   dashboard.setTitle("Mini Tally");
   //Tab *restApiTab = new Tab(&dashboard, "REST API");
   //Card *restApi = new Card(&dashboard, BUTTON_CARD, "Enable REST API");
@@ -125,25 +162,25 @@ void setupDashboard()
   blue->update(0);
   brightness->attachCallback([&](int value)
                              {
-    setLedColor((led.getPixelColor(0) >> 0) & 0xFF, (led.getPixelColor(0) >> 8) & 0xFF, (led.getPixelColor(0) >> 16) & 0xFF, value);
+    setLedBrightness(value);
     brightness->update(value);
     dashboard.sendUpdates(); });
 
   red->attachCallback([&](int value)
                       {
-    setLedColor(value, (led.getPixelColor(0) >> 8) & 0xFF, (led.getPixelColor(0) >> 16) & 0xFF, led.getBrightness());
+    setLedColor(value, (led.getPixelColor(0) >> 8) & 0xFF, (led.getPixelColor(0) >> 0) & 0xFF);
     red->update(value);
     dashboard.sendUpdates(); });
 
   green->attachCallback([&](int value)
                         {
-    setLedColor((led.getPixelColor(0) >> 0) & 0xFF, value, (led.getPixelColor(0) >> 16) & 0xFF, led.getBrightness());
+    setLedColor((led.getPixelColor(0) >> 16) & 0xFF, value, (led.getPixelColor(0) >> 0) & 0xFF);
     green->update(value);
     dashboard.sendUpdates(); });
 
   blue->attachCallback([&](int value)
                        {
-    setLedColor((led.getPixelColor(0) >> 0) & 0xFF, (led.getPixelColor(0) >> 8) & 0xFF, value, led.getBrightness());
+    setLedColor((led.getPixelColor(0) >> 16) & 0xFF, (led.getPixelColor(0) >> 8) & 0xFF, value);
     blue->update(value);
     dashboard.sendUpdates(); });
 
@@ -160,6 +197,7 @@ void setupDashboard()
  */
 void updateDashboard(uint8_t _r, uint8_t _g, uint8_t _b, uint8_t _brightness)
 {
+  ESP_LOGI(__func__, "Updating dashboard: r=%i, g=%i, b=%i, br=%i", _r, _g, _b, _brightness);
   red->update(_r);
   green->update(_g);
   blue->update(_b);
@@ -167,6 +205,9 @@ void updateDashboard(uint8_t _r, uint8_t _g, uint8_t _b, uint8_t _brightness)
   dashboard.sendUpdates();
 }
 
+uint32_t stringToColor(String color)
+{
+}
 
 /**
  * @brief Initializes the REST API.
@@ -181,9 +222,7 @@ void setupAPI()
     AsyncResponseStream *response = request->beginResponseStream("application/json");
     DynamicJsonDocument jsonBuffer(1024);
     JsonObject json = jsonBuffer.to<JsonObject>();
-    json["r"] = (led.getPixelColor(0) >> 0) & 0xFF;
-    json["g"] = (led.getPixelColor(0) >> 8) & 0xFF;
-    json["b"] = (led.getPixelColor(0) >> 16) & 0xFF;
+    json["color"] = String(led.getPixelColor(0), HEX);
     json["brightness"] = led.getBrightness();
     serializeJson(json, *response);
     request->send(response); });
@@ -194,23 +233,13 @@ void setupAPI()
     AsyncResponseStream *response = request->beginResponseStream("application/json");
     DynamicJsonDocument jsonBuffer(1024);
     JsonObject json = jsonBuffer.to<JsonObject>();
-    Serial.printf("POST %s", request->url().c_str());
-    Serial.printf("PARAMS %d", request->params());
-    for (int i = 0; i < request->params(); i++)
+    ESP_LOGI(__func__, "POST %s", request->url().c_str());
+    if (request->hasParam("color"))
     {
-      Serial.printf("--PARAM %s\n", request->getParam(i)->name().c_str());
-      Serial.printf("  VALUE %s\n", request->getParam(i)->value().c_str());
-    }
-    if (request->hasParam("r") && request->hasParam("g") && request->hasParam("b"))
-    {
-      int r = request->getParam("r")->value().toInt();
-      int g = request->getParam("g")->value().toInt();
-      int b = request->getParam("b")->value().toInt();
-      setLedColor(r, g, b, led.getBrightness());
-      json["r"] = (led.getPixelColor(0) >> 0) & 0xFF;
-      json["g"] = (led.getPixelColor(0) >> 8) & 0xFF;
-      json["b"] = (led.getPixelColor(0) >> 16) & 0xFF;
-      json["brightness"] = led.getBrightness();
+      long status = strtol(request->getParam("color")->value().c_str(), NULL, 16);
+      uint32_t color = (uint32_t)status;
+      setLedColor(color);
+      json["color"] = String(color, HEX);
       serializeJson(json, *response);
       request->send(response);
     }
@@ -233,10 +262,7 @@ void setupAPI()
       uint8_t r = (led.getPixelColor(0) >> 0) & 0xFF;
       uint8_t g = (led.getPixelColor(0) >> 8) & 0xFF;
       uint8_t b = (led.getPixelColor(0) >> 16) & 0xFF;
-      setLedColor(r, g, b, brightness);
-      json["r"] = r;
-      json["g"] = g;
-      json["b"] = b;
+      setLedBrightness(brightness);
       json["brightness"] = brightness;
       serializeJson(json, *response);
       request->send(response);
@@ -258,7 +284,9 @@ void setupAPI()
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
-  delay(5000);
+  Serial.setDebugOutput(true);
+  delay(2000);
+  ESP_LOGI(__func__, "Mini Tally starting...");
   led.begin();
   led.setPixelColor(0, 50, 0, 0);
   led.show();
@@ -267,32 +295,28 @@ void setup() {
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   if (WiFi.waitForConnectResult() != WL_CONNECTED)
   {
-    Serial.printf("WiFi Failed!\n");
-    
+    ESP_LOGE(__func__, "WiFi Failed!");
   }
   else
   {
-    Serial.printf("WiFi Connected, channel %i\n", WiFi.channel());
-    Serial.printf("IP Address: %s\n", WiFi.localIP().toString().c_str());
+    ESP_LOGI(__func__, "WiFi Connected, channel %i", WiFi.channel());
+    ESP_LOGI(__func__, "IP Address: %s", WiFi.localIP().toString().c_str());
   }
 
-  esp_err_t err = esp_now_init();
-  Serial.printf("ESP-NOW init: %s\n", esp_err_to_name(err));
+  /*esp_err_t err = esp_now_init();
+  ESP_LOGI(__func__, "ESP-NOW init: %s", esp_err_to_name(err));
   err = esp_now_register_recv_cb(OnDataRecv);
-  Serial.printf("ESP-NOW register recv: %s\n", esp_err_to_name(err));
+  ESP_LOGI(__func__, "ESP-NOW register recv: %s", esp_err_to_name(err));
   err = esp_now_register_send_cb(OnDataSent);
-  Serial.printf("ESP-NOW register send: %s\n", esp_err_to_name(err));
+  ESP_LOGI(__func__, "ESP-NOW register send: %s", esp_err_to_name(err));
   esp_now_peer_info_t peerInfo;
   memcpy(peerInfo.peer_addr, broadcastAddress, 6);
   peerInfo.channel = 0;
   peerInfo.encrypt = false;
   err = esp_now_add_peer(&peerInfo);
-  Serial.printf("ESP-NOW add peer: %s\n", esp_err_to_name(err));
+  ESP_LOGI(__func__, "ESP-NOW add peer: %s", esp_err_to_name(err));*/
 
   server.begin();
-  led.setPixelColor(0, 0, 50, 0);
-  led.show();
-  delay(1000);
   led.setPixelColor(0, 0, 0, 0);
   led.show();
   

@@ -1,19 +1,21 @@
 meta {
-  name: Set LED Brightness
+  name: Set LED State
   type: http
-  seq: 3
+  seq: 2
 }
 
 post {
-  url: {{baseURL}}/led/brightness?brightness={{brightness}}
+  url: {{baseUrl}}/led?color={{color}}&brightness={{brightness}}
   body: none
   auth: none
 }
 
 query {
+  color: {{color}}
   brightness: {{brightness}}
 }
 
 vars:pre-request {
+  color: "blue"
   brightness: 255
 }

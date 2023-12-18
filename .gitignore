@@ -4,6 +4,6 @@
 .vscode/launch.json
 .vscode/ipch
 
-include/secrets.h
+lib/helpers/secrets.h
 
 api/environments/

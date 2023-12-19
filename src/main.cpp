@@ -19,7 +19,7 @@ void setup() {
   //setupEspNow();
   setupApi();
   setupDashboard();
-  updateCallbacks(getLed());
+  updateCallbacks(getLedState());
   ESP_LOGI(__func__, "Mini Tally setup complete.");
 }
 

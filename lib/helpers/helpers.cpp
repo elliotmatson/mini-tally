@@ -78,7 +78,7 @@ esp_err_t setupWifi()
  *
  * @param state The LED state to set.
  */
-void setLed(led_state_t state)
+void setLedState(led_state_t state)
 {
     ESP_LOGI(__func__, "Setting LED color: color=%i, br=%i", state.color, state.brightness);
     led.setPixelColor(0, state.color);
@@ -92,7 +92,7 @@ void setLed(led_state_t state)
  * 
  * @return The LED state as a led_state_t struct.
  */
-led_state_t getLed()
+led_state_t getLedState()
 {
     led_state_t state;
     state.color = getLedColor();

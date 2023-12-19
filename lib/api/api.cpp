@@ -34,7 +34,7 @@ esp_err_t setupApi() {
             if (request->hasParam("color"))
             {
                 state.color = stringToColor(request->getParam("color")->value());
-                json["color"] = request->getParam("color")->value();
+                json["color"] = colorToString(state.color);
             } else {
                 state.color = getLedColor();
             }
@@ -45,7 +45,7 @@ esp_err_t setupApi() {
             } else {
                 state.brightness = getLedBrightness();
             }
-            setLed(state);
+            setLedState(state);
             serializeJson(json, *response);
             request->send(response);
         }

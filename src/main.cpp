@@ -33,7 +33,9 @@ void setup() {
     ESP_LOGE(__func__, "Error setting up mDNS responder!");
   }
   MDNS.setInstanceName("Mini Tally");
-  MDNS.addService("poop", "tcp", 80);
+  MDNS.addService("http", "tcp", 80);
+  MDNS.addService("mini-tally", "tcp", 80);
+  MDNS.addServiceTxt("mini-tally", "tcp", "test", "testval");
   delay(1000);
   mdns_result_t *results = NULL;
   esp_err_t err = mdns_query_ptr("_http", "_tcp", 10000, 20, &results);
@@ -42,7 +44,7 @@ void setup() {
   }
   ESP_LOGI(__func__, "Query Results:");
   for (mdns_result_t *r = results; r; r = r->next) {
-    ESP_LOGI(__func__, "  %s (%s:%d)", r->instance_name, r->addr, r->port);
+    ESP_LOGI(__func__, "  %s (%s:%d)", r->instance_name, r->addr->addr, r->port);
   }
   mdns_query_results_free(results);
   ESP_LOGI(__func__, "mDNS setup complete.");

@@ -1,2 +1,2 @@
-#define LED_PIN 16
-#define NUM_LEDS 1
+#define LED_PIN 18
+#define NUM_LEDS 4

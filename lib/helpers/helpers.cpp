@@ -30,11 +30,11 @@ void setupLeds()
 {
     ESP_LOGI(__func__, "Setting up LEDs...");
     led.begin();
-    led.setPixelColor(0, 0, 255, 0);
     led.setBrightness(255);
+    setLedColor(0x00FF00);
     led.show();
     delay(200);
-    led.setPixelColor(0, 0, 0, 0);
+    setLedColor(0x000000);
     led.show();
     ESP_LOGI(__func__, "LED setup complete.");
 }
@@ -49,6 +49,7 @@ void setupLeds()
  */
 esp_err_t setupWifi()
 {
+    setLedColor(0x0000FF);
     ESP_LOGI(__func__, "Setting up WiFi...");
     WiFi.mode(WIFI_AP_STA);
     ESP_LOGI(__func__, "Connecting to %s...", WIFI_SSID);
@@ -70,6 +71,7 @@ esp_err_t setupWifi()
         ESP_LOGI(__func__, "404: %s", request->url().c_str());
     });
     ESP_LOGI(__func__, "WiFi setup complete.");
+    setLedColor(0x000000);
     return ESP_OK;
 }
 
@@ -81,7 +83,10 @@ esp_err_t setupWifi()
 void setLedState(led_state_t state)
 {
     ESP_LOGI(__func__, "Setting LED color: color=%i, br=%i", state.color, state.brightness);
-    led.setPixelColor(0, state.color);
+    for (int i = 0; i < NUM_LEDS; i++)
+    {
+        led.setPixelColor(i, state.color);
+    }
     led.setBrightness(state.brightness);
     led.show();
     updateCallbacks(state);
@@ -109,7 +114,10 @@ led_state_t getLedState()
 void setLedColor(uint32_t color)
 {
     ESP_LOGI(__func__, "Setting LED color: color=%i, br=%i", color);
-    led.setPixelColor(0, color);
+    for (int i = 0; i < NUM_LEDS; i++)
+    {
+        led.setPixelColor(i, color);
+    }
     led.show();
     led_state_t state;
     state.color = color;

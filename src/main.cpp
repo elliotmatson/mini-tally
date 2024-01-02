@@ -37,21 +37,8 @@ void setup() {
   MDNS.addService("mini-tally", "tcp", 80);
   MDNS.addServiceTxt("mini-tally", "tcp", "test", "testval");
   delay(1000);
-  mdns_result_t *results = NULL;
-  esp_err_t err = mdns_query_ptr("_http", "_tcp", 10000, 20, &results);
-  if (err) {
-    ESP_LOGE(__func__, "Query Failed");
-  }
-  ESP_LOGI(__func__, "Query Results:");
-  for (mdns_result_t *r = results; r; r = r->next) {
-    ESP_LOGI(__func__, "  %s (%s:%d)", r->instance_name, r->addr->addr, r->port);
-  }
-  mdns_query_results_free(results);
-  ESP_LOGI(__func__, "mDNS setup complete.");
 
-
-
-  /*uint8_t serviceCount = MDNS.queryService("_http", "_tcp");
+  uint8_t serviceCount = MDNS.queryService("_http", "_tcp");
   if (serviceCount == 0) {
     ESP_LOGE(__func__, "No services found");
   } else {
@@ -60,7 +47,10 @@ void setup() {
       // Print details for each service found
       ESP_LOGI(__func__, "  %d: %s (%s:%d)", i + 1, MDNS.hostname(i).c_str(), MDNS.IP(i).toString().c_str(), MDNS.port(i));
     }
-  }*/
+  }
+
+  // need to swap api to ESP-IDF
+
 
   delay(1000000);
   // setup Telnet connection to Streaming Bridge

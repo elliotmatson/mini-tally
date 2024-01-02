@@ -1,6 +1,6 @@
 #include "helpers.h"
 
-Adafruit_NeoPixel led = Adafruit_NeoPixel(1, LED_PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel led = Adafruit_NeoPixel(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 std::vector<void (*)(led_state_t state)> ledUpdateCallbacks;
 

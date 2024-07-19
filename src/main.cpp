@@ -38,21 +38,24 @@ void setup() {
   MDNS.addServiceTxt("mini-tally", "tcp", "test", "testval");
   delay(1000);
 
-  uint8_t serviceCount = MDNS.queryService("_http", "_tcp");
+  uint8_t serviceCount = MDNS.queryService("_blackmagic", "_tcp");
   if (serviceCount == 0) {
     ESP_LOGE(__func__, "No services found");
   } else {
     ESP_LOGI(__func__, "Found %d services", serviceCount);
     for (int i = 0; i < serviceCount; ++i) {
       // Print details for each service found
-      ESP_LOGI(__func__, "  %d: %s (%s:%d)", i + 1, MDNS.hostname(i).c_str(), MDNS.IP(i).toString().c_str(), MDNS.port(i));
+      ESP_LOGI(__func__, "  %d: %s %s (%s:%d)", i + 1, MDNS.hasTxt(i,"class") ? MDNS.txt(i, "class") : "", MDNS.hostname(i).c_str(), MDNS.IP(i).toString().c_str(), MDNS.port(i));
+      MDNS.IP(i);
     }
   }
+
+
 
   // need to swap api to ESP-IDF
 
 
-  delay(1000000);
+  //delay(1000000);
   // setup Telnet connection to Streaming Bridge
   ESP_LOGI(__func__, "Connecting to Streaming Bridge...");
   AsyncClient *client = new AsyncClient();
@@ -76,19 +79,19 @@ void setup() {
         ESP_LOGI(__func__, "Streaming Bridge Status updated: %s", match[1].str().c_str());
         if (match[1].str() == "Idle")
         {
-          setLedColor(0x000044);
+          setLedColor(0x000000);
         }
         else if (match[1].str() == "Connecting")
         {
-          setLedColor(0xFFFF00);
+          setLedColor(0xFFAA00);
         } 
         else if (match[1].str() == "Streaming")
         {
-          setLedColor(0xFF0000);
+          setLedColor(0x00FF00);
         }
         else if (match[1].str() == "Interrupted")
         {
-          setLedColor(0xFF6600);
+          setLedColor(0xFF0000);
         }
       } },
                    NULL); },
@@ -98,7 +101,7 @@ void setup() {
   // setup Telnet connection to Hyperdeck
   ESP_LOGI(__func__, "Connecting to Hyperdeck...");
   AsyncClient *client2 = new AsyncClient();
-  IPAddress remoteIP2 = IPAddress(192, 168, 150, 11);
+  IPAddress remoteIP2 = IPAddress(192, 168, 150, 12);
   client2->onConnect([](void *arg, AsyncClient *client)
                     {
     ESP_LOGI(__func__, "Connected to Hyperdeck");
@@ -111,7 +114,6 @@ void setup() {
     client->onData([](void *arg, AsyncClient *client, void *data, size_t len)
                    {
       ESP_LOGI(__func__, "Received %d bytes from Hyperdeck", len);
-      ESP_LOGI(__func__, "Data: \n%s", (char*)data);
       std::string str((char*)data);
       std::regex re("508 transport info:\r\nstatus: (.*?)\r\n");
       std::smatch match;
@@ -119,7 +121,7 @@ void setup() {
         ESP_LOGI(__func__, "Hyperdeck Status updated: %s", match[1].str().c_str());
         if (match[1].str() == "stopped")
         {
-          setLedColor(0x000044);
+          setLedColor(0x000000);
         }
         else if (match[1].str() == "play")
         {
@@ -131,7 +133,7 @@ void setup() {
         }
         else if (match[1].str() == "preview")
         {
-          setLedColor(0x004400);
+          setLedColor(0x000000);
         }
       } },
                    NULL); 
